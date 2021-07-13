@@ -97,13 +97,13 @@ class NumericCalculation:
     def plot(self,
              axes: plt.Axes,
              color: str,
-             collums: List[int] = [0, 1],
+             columns: List[int] = [0, 1],
              label=""):
         if self.fileName:
             data = np.genfromtxt(self.fileName, delimiter=",")
         else:
             data = np.array(self.coordinates)
-        axes.plot(*[data[:, collum] for collum in collums],
+        axes.plot(*[data[:, column] for column in columns],
                   marker=".",
                   markersize=2,
                   linewidth=1.0,

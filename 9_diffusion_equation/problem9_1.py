@@ -39,7 +39,7 @@ pde.calculate(tToLogs=[np.float64(t) for t in range(6)])
 figure = plt.figure(figsize=(14, 7))
 axes = figure.add_subplot(111, xlabel="$x$", ylabel="$u$")
 
-pde.plot(axes, "b", collums=[1, 2], label="$L={}$".format(round(L, 4)))
+pde.plot(axes, "b", columns=[1, 2], label="$L={}$".format(round(L, 4)))
 
 axes.legend()
 plt.show()

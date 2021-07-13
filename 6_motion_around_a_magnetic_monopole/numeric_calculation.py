@@ -19,12 +19,8 @@ class NumericCalculation:
     def __init__(self):
         self.fileName = None
 
-    def setInitialValue(self,
-                        xInitial: np.ndarray,
-                        vInitial: np.ndarray,
-                        tDelta: np.float64,
-                        tInitial: float,
-                        tFinal: float):
+    def setInitialValue(self, xInitial: np.ndarray, vInitial: np.ndarray,
+                        tDelta: np.float64, tInitial: float, tFinal: float):
         self.initialxAndv = np.vstack([xInitial, vInitial])
         self.xAndv = np.vstack([xInitial, vInitial])
         self.tDelta = tDelta
@@ -32,7 +28,8 @@ class NumericCalculation:
         self.tFinal = tFinal
         self.distanceMinimum = np.linalg.norm(self.x, ord=2)
 
-    def setMethod(self, method: Literal["Euler", "RungeKutta2", "RungeKutta4", "Symplectic"]):
+    def setMethod(self, method: Literal["Euler", "RungeKutta2", "RungeKutta4",
+                                        "Symplectic"]):
         if method == "Euler":
             self._update = self._updateEuler
         elif method == "RungeKutta2":
@@ -79,10 +76,18 @@ class NumericCalculation:
     def logData(self, writer):
         writer.writerow([self.t] + self.x.tolist())
 
-    def plot(self, axes: plt.Axes, color: str, collums: List[int] = [0, 1], label=""):
+    def plot(self,
+             axes: plt.Axes,
+             color: str,
+             columns: List[int] = [0, 1],
+             label=""):
         data = np.genfromtxt(self.fileName, delimiter=",")
-        axes.plot(*[data[:, collum] for collum in collums], marker=".",
-                  markersize=2, linewidth=1.0, color=color, label=label)
+        axes.plot(*[data[:, column] for column in columns],
+                  marker=".",
+                  markersize=2,
+                  linewidth=1.0,
+                  color=color,
+                  label=label)
 
     def start(self, logEvery=1):
         if self.fileName:
@@ -107,7 +112,7 @@ class NumericCalculation:
                 if self.t >= self.tFinal:
                     break
 
-    @ property
+    @property
     def x(self) -> np.ndarray:
         return self.xAndv[0]
 
