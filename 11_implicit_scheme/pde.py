@@ -397,8 +397,8 @@ class PDE:
 
     @property
     def t(self):
-        return self.tDelta * self.tIndex
+        return self.tMin + self.tDelta * self.tIndex
 
     @property
     def tNext(self):
-        return self.tDelta * (self.tIndex + 1)
+        return self.tMin + self.tDelta * (self.tIndex + 1)
