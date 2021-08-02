@@ -3,12 +3,14 @@ from pyqtgraph.Qt import QtCore, QtGui
 import sys
 from threading import Thread
 
-from numpy import cos, float64, matrix, ndarray, power, sin, zeros, block, eye, array, genfromtxt
+from numpy import (cos, float64, matrix, ndarray, power, sin, zeros, block,
+                   eye, array)
 from numpy.linalg import solve
 from scipy.linalg import solve_continuous_are
 from numeric_calculation import NumericCalculation
 
-from init_prob import l1, l2, m2, mu, g, theta12Initial, theta12_DInitial, tDelta, logEveryT, torqueNoise
+from init_prob import (l1, l2, m2, mu, g, theta12Initial, theta12_DInitial,
+                       tDelta, logEveryT, torqueNoise)
 
 
 class DoublePendulumGraph:

@@ -1,6 +1,7 @@
 import matplotlib
 from numeric_calculation import NumericCalculation
-from init_prob import l1, l2, mu, g, theta12Initial, theta12_DInitial, tDelta, logEveryT
+from init_prob import (l1, l2, mu, g, theta12Initial, theta12_DInitial, tDelta,
+                       logEveryT)
 from numpy import cos, float64, matrix, ndarray, power, sin, zeros
 from numpy.linalg import solve
 import matplotlib.pyplot as plt

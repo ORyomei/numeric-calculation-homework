@@ -1,6 +1,8 @@
 from numeric_calculation import NumericCalculation
-from init_prob import l1, l2, m2, mu, g, theta12Initial, theta12_DInitial, tDelta, logEveryT, sigma1, sigma2
-from numpy import cos, float64, matrix, ndarray, power, sin, zeros, block, eye, random
+from init_prob import (l1, l2, m2, mu, g, theta12Initial, theta12_DInitial,
+                       tDelta, logEveryT, sigma1, sigma2)
+from numpy import (cos, float64, matrix, ndarray, power, sin, zeros, block,
+                   eye, random)
 from numpy.linalg import solve
 from scipy.linalg import solve_continuous_are
 import matplotlib.pyplot as plt
