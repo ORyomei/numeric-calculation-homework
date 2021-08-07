@@ -1,24 +1,28 @@
-# from .numeric_calculation import NumericCalculation
 from numeric_calculation import NumericCalculation
-import numpy as np
+from numpy import float64, ndarray, power, array, cosh, sqrt
 import matplotlib.pyplot as plt
-import datetime
-from os import makedirs
 from scipy.optimize import fsolve
-from random import choice
 
 
-def V(t: np.float64):
-    return -3.0 / np.power(np.cosh(t), 2)
+def V(t: float64):
+    return -3.0 / power(cosh(t), 2)
 
 
-def a(x: np.ndarray, t: np.float64, eigenValue: np.float64) -> np.ndarray:
+def a(x: ndarray, t: float64, eigenValue: float64) -> ndarray:
     return (V(t) - eigenValue) * x
 
 
-def schrodingerEquation(eigenValue, xInitial: np.ndarray, vInitial: np.ndarray,
-                        tDelta: np.float64, tInitial: float, tFinal: float,
-                        axes: plt.Axes) -> np.float64:
+xInitial = array([1e-5], dtype=float64)
+tInitial = -20.0
+tFinal = 20.0
+tDelta = 20 / 5000
+
+gCalculator: NumericCalculation
+
+
+def schrodingerEquation(eigenValue: float) -> float64:
+    global gCalculator
+    vInitial = xInitial * sqrt(V(tInitial) - eigenValue)
 
     calculator = NumericCalculation()
     calculator.setInitialValue(xInitial=xInitial,
@@ -28,25 +32,30 @@ def schrodingerEquation(eigenValue, xInitial: np.ndarray, vInitial: np.ndarray,
                                tFinal=tFinal)
     distanceInitial = calculator.distance
 
-    def _a(x: np.ndarray, v: np.ndarray, t: np.float64) -> np.ndarray:
+    def _a(x: ndarray, v: ndarray, t: float64) -> ndarray:
         return a(x, t, eigenValue)
 
     calculator.setEquation(_a)
     calculator.setMethod("RungeKutta4")
-    calculator.calculate(logEvery=1)
-    # if calculator.distance <= distanceInitial * 10000000:
-    calculator.plot(axes,
-                    choice(NumericCalculation.PLOT_COLORS),
-                    label=r"$E={}$".format(eigenValue))
-    return np.linalg.norm(calculator.x, ord=2)
+    calculator.calculate()
+    gCalculator = calculator
+    return calculator.distance - distanceInitial
 
 
 figure = plt.figure(figsize=(16, 7))
 axes = figure.add_subplot(111)
+axes.set_xlabel("x")
+axes.set_ylabel("u")
 
-extraArgs = (np.array([10**-5], dtype=np.float64),
-             np.array([1], dtype=np.float64), 20 / 5000, -20, 0, axes)
-print(fsolve(schrodingerEquation, -0.1, extraArgs, xtol=0.0000001))
+eigenValue = fsolve(schrodingerEquation, -0.5)
+print(eigenValue)
+gCalculator.normalize()
+gCalculator.plot(axes, "b", label=r"$E={}$".format(eigenValue))
+
+eigenValue = fsolve(schrodingerEquation, -2.0)
+print(eigenValue)
+gCalculator.normalize()
+gCalculator.plot(axes, "g", label=r"$E={}$".format(eigenValue))
 
 axes.legend()
 plt.show()

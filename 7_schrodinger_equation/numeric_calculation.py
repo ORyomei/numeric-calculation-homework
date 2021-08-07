@@ -1,5 +1,5 @@
 from os import write
-from typing import List, Literal
+from typing import Callable, List, Literal
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
@@ -18,7 +18,12 @@ class NumericCalculation:
     cycleTimes: List[np.float64]
     distanceMinimum: np.float64
     distanceMaximum: np.float64
-    coordinates: List[np.ndarray]
+    coordinates: np.ndarray
+    dimension: int
+    xHigherLimit: np.ndarray
+    xLowerLimit: np.ndarray
+    a: Callable[[np.ndarray, np.ndarray, np.float64], np.ndarray]
+    _updateNumeric: Callable[[], None]
 
     PLOT_COLORS = ["b", "g", "r", "c", "m", "y", "k"]
 
@@ -35,24 +40,50 @@ class NumericCalculation:
         self.tFinal = tFinal
         self.distanceMinimum = np.linalg.norm(self.x, ord=2)
         self.distanceMaximum = np.linalg.norm(self.x, ord=2)
+        self.dimension = len(xInitial)
+        self.xHigherLimit = np.full(self.dimension, np.finfo(np.float64).max)
+        self.xLowerLimit = np.full(self.dimension, np.finfo(np.float64).min)
 
     def setMethod(self, method: Literal["Euler", "RungeKutta2", "RungeKutta4",
                                         "Symplectic"]):
         if method == "Euler":
-            self._update = self._updateEuler
+            self._updateNumeric = self._updateEuler
         elif method == "RungeKutta2":
-            self._update = self._updateRungeKutta2
+            self._updateNumeric = self._updateRungeKutta2
         elif method == "RungeKutta4":
-            self._update = self._updateRungeKutta4
+            self._updateNumeric = self._updateRungeKutta4
         elif method == "Symplectic":
-            self._update = self._updateSymplectic
+            self._updateNumeric = self._updateSymplectic
         self.method = method
 
-    def setEquation(self, func):
+    def setEquation(self, func: Callable[[np.ndarray, np.ndarray, np.float64],
+                                         np.ndarray]):
         self.a = func
 
     def setDataFileName(self, fileName: str):
         self.fileName = fileName
+
+    def setLimit(self, xLowerLimit: np.ndarray,
+                 xHigherLimit: np.ndarray) -> bool:
+        for (lowerLimit, higherLimit) in zip(xLowerLimit, xHigherLimit):
+            if lowerLimit >= higherLimit:
+                print("invalid Limit")
+                return False
+        self.xLowerLimit = xLowerLimit
+        self.xHigherLimit = xHigherLimit
+        return True
+
+    def _isInLimit(self) -> bool:
+        for (value, lowerLimit, higherLimit) in zip(self.x, self.xLowerLimit,
+                                                    self.xHigherLimit):
+            if value < lowerLimit or higherLimit < value:
+                return False
+        return True
+
+    def _isToFinish(self) -> bool:
+        tIsFinal = np.abs(self.t - self.tFinal) <= self.tDelta / 2
+        outOfLimit = not self._isInLimit
+        return tIsFinal or outOfLimit
 
     def _dxAnddv(self, xAndv: np.ndarray, t: np.float64) -> np.ndarray:
         return np.vstack([xAndv[1], self.a(xAndv[0], xAndv[1], t)])
@@ -88,11 +119,22 @@ class NumericCalculation:
                                               self.t)
         self.t += self.tDelta
 
+    def _updateDistance(self):
+        if self.distance < self.distanceMinimum:
+            self.distanceMinimum = self.distance
+        if self.distance > self.distanceMaximum:
+            self.distanceMaximum = self.distance
+
+    def update(self):
+        self._updateNumeric()
+        self._updateDistance()
+
     def _logData(self, writer=None):
         if writer != None:
             writer.writerow([self.t] + self.x.tolist())
         else:
-            self.coordinates.append([self.t] + self.x.tolist())
+            self.coordinates = np.block(
+                [[self.coordinates], [np.array([self.t] + self.x.tolist())]])
 
     def plot(self,
              axes: plt.Axes,
@@ -102,54 +144,59 @@ class NumericCalculation:
         if self.fileName:
             data = np.genfromtxt(self.fileName, delimiter=",")
         else:
-            data = np.array(self.coordinates)
+            data = self.coordinates
         axes.plot(*[data[:, column] for column in columns],
                   marker=".",
-                  markersize=2,
+                  markersize=0,
                   linewidth=1.0,
                   color=color,
                   label=label)
 
-    def calculate(self, logEvery=1):
+    def calculate(self, logEvery: int = 1, logEveryT: np.float64 = None):
         if self.fileName:
-            self._calculateToOutputFile(logEvery)
+            self._calculateToOutputFile(logEvery, logEveryT)
         else:
-            self._calculateToList(logEvery)
+            self._calculateToList(logEvery, logEveryT)
 
-    def _calculateToOutputFile(self, logEvery):
+    def _isToLog(self,
+                 count: int,
+                 logEvery: int = 1,
+                 logEveryT: np.float64 = None) -> bool:
+        if logEveryT == None:
+            return count % logEvery == 0
+        else:
+            return np.abs((self.t + logEveryT / 2) % logEveryT -
+                          logEveryT / 2) < self.tDelta / 2
+
+    def _calculateToOutputFile(self, logEvery: int, logEveryT: np.float64):
         with open(self.fileName, 'w') as f:
             writer = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
-            self._logData(writer)
             count = 0
+            if self._isToLog(count, logEvery, logEveryT):
+                self._logData(writer)
             while True:
-                self._update()
-                distance = self.distance
-                if distance < self.distanceMinimum:
-                    self.distanceMinimum = distance
-                if distance > self.distanceMaximum:
-                    self.distanceMaximum = distance
-                if count % logEvery == 0:
-                    self._logData(writer)
-                if self.t >= self.tFinal:
-                    break
+                self.update()
                 count += 1
+                if self._isToLog(count, logEvery, logEveryT):
+                    self._logData(writer)
+                if self._isToFinish():
+                    break
 
-    def _calculateToList(self, logEvery):
-        self.coordinates = []
-        self._logData()
+    def _calculateToList(self, logEvery: int, logEveryT: np.float64):
+        self.coordinates = np.empty((0, 2), dtype=np.float64)
         count = 0
+        if self._isToLog(count, logEvery, logEveryT):
+            self._logData()
         while True:
-            self._update()
-            distance = self.distance
-            if distance < self.distanceMinimum:
-                self.distanceMinimum = distance
-            if distance > self.distanceMaximum:
-                self.distanceMaximum = distance
-            if count % logEvery == 0:
-                self._logData()
-            if self.t >= self.tFinal:
-                break
+            self.update()
             count += 1
+            if self._isToLog(count, logEvery, logEveryT):
+                self._logData()
+            if self._isToFinish():
+                break
+
+    def normalize(self):
+        self.coordinates[:, 1:self.dimension + 1] /= self.distanceMaximum
 
     @property
     def x(self) -> np.ndarray:
